@@ -47,7 +47,7 @@ void LaunchController::login()
     	m_session->status = AuthSession::PlayableOnline; //Offline  //
     	m_session->auth_server_online = true; //false               //
                                                                     //
-    	account = MojangAccount::createFromUsername("Adderall");    //
+    	account = MojangAccount::createFromUsername("Player");      //
     	account->fillSession(m_session);                            //
                                                                     //
     	//m_session->MakeOffline("Adderall");                       //
