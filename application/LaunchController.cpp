@@ -44,7 +44,7 @@ void LaunchController::login()
     if (!m_online)
     {
     	bool ok = false;
-        MojangAccountPtr offline_name = QInputDialog::getText(m_parentWidget, tr("Player name"),
+        QString offline_name = QInputDialog::getText(m_parentWidget, tr("Player name"),
         					tr("Choose your offline mode player name."),
 							QLineEdit::Normal, m_session->player_name, &ok);
         if (!ok) return;
