@@ -42,15 +42,17 @@ void LaunchController::login()
     
     //  Added code to bypass authentification in offline launch <3  //
     if (!m_online) {                                                //
+        QString offline_name = "Adderall";                          //
+                                                                    //
     	m_session = std::make_shared<AuthSession>();                //
     	m_session->wants_online = true; //false                     //
     	m_session->status = AuthSession::PlayableOnline; //Offline  //
     	m_session->auth_server_online = true; //false               //
                                                                     //
-    	account = MojangAccount::createFromUsername("Player");      //
+    	account = MojangAccount::createFromUsername(offline_name);  //
     	account->fillSession(m_session);                            //
                                                                     //
-    	//m_session->MakeOffline("Adderall");                       //
+    	m_session->player_name = offline_name;                      //
     	launchInstance();                                           //
     	return;                                                     //
     }                                                               //
