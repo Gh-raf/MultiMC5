@@ -40,25 +40,26 @@ void LaunchController::login()
     std::shared_ptr<MojangAccountList> accounts = MMC->accounts();
     MojangAccountPtr account = accounts->activeAccount();
     
+    // Added code to bypass authentification when in offline mode <3
     if (!m_online)
     {
-        bool ok = false;
+    	bool ok = false;
         MojangAccountPtr offline_name = QInputDialog::getText(m_parentWidget, tr("Player name"),
-    	    			tr("Choose your offline mode player name."),
-    					QLineEdit::Normal, m_session->player_name, &ok);
+        					tr("Choose your offline mode player name."),
+							QLineEdit::Normal, m_session->player_name, &ok);
         if (!ok) return;
-        
-    	m_session = std::make_shared<AuthSession>();
-    	m_session->wants_online = true; //false
-    	m_session->status = AuthSession::PlayableOnline; //Offline
-    	m_session->auth_server_online = true; //false
 
-    	account = MojangAccount::createFromUsername(offline_name);
-    	account->fillSession(m_session);    	
-    	
-    	m_session->player_name = offline_name;
-    	launchInstance();
-    	return;
+        m_session = std::make_shared<AuthSession>();
+        m_session->wants_online = true; //false
+        m_session->status = AuthSession::PlayableOnline; //Offline
+        m_session->auth_server_online = true; //false
+
+        account = MojangAccount::createFromUsername(offline_name);
+        account->fillSession(m_session);
+
+        m_session->player_name = offline_name;
+        launchInstance();
+        return;
     }
     
     if (accounts->count() <= 0)
