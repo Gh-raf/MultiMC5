@@ -171,7 +171,8 @@ slots:
     void authSucceeded();
     void authFailed(QString reason);
 
-private:
+// Set `fillSession`s visibility to public
+public:
     void fillSession(AuthSessionPtr session);
 
 public:
