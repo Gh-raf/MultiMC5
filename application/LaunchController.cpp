@@ -39,6 +39,23 @@ void LaunchController::login()
     // Find an account to use.
     std::shared_ptr<MojangAccountList> accounts = MMC->accounts();
     MojangAccountPtr account = accounts->activeAccount();
+    
+    //  Added code to bypass authentification in offline launch <3  //
+    if (!m_online) {                                                //
+    	m_session = std::make_shared<AuthSession>();                //
+    	m_session->wants_online = true; //false                     //
+    	m_session->status = AuthSession::PlayableOnline; //Offline  //
+    	m_session->auth_server_online = true; //false               //
+                                                                    //
+    	account = MojangAccount::createFromUsername("Adderall");    //
+    	account->fillSession(m_session);                            //
+                                                                    //
+    	//m_session->MakeOffline("Adderall");                       //
+    	launchInstance();                                           //
+    	return;                                                     //
+    }                                                               //
+    //////////////////////////////////////////////////////////////////
+    
     if (accounts->count() <= 0)
     {
         // Tell the user they need to log in at least one account in order to play.
