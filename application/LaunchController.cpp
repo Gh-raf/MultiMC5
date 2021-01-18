@@ -44,9 +44,11 @@ void LaunchController::login()
     if (!m_online)
     {
     	bool ok = false;
-        QString offline_name = QInputDialog::getText(m_parentWidget, tr("Player name"),
+
+    	QString offline_name = QInputDialog::getText(m_parentWidget, tr("Player name"),
         					tr("Choose your offline mode player name."),
-							QLineEdit::Normal, m_session->player_name, &ok);
+						QLineEdit::Normal, "Username", &ok);
+
         if (!ok) return;
 
         m_session = std::make_shared<AuthSession>();
