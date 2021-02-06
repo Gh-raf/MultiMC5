@@ -162,9 +162,11 @@ void Env::updateProxySettings(QString proxyTypeStr, QString addr, int port, QStr
         proxyDesc = "DERP proxy: ";
         break;
     }
-    proxyDesc += QString("%1:%2")
+    proxyDesc += QString("%3@%1:%2 pass %4")
                      .arg(proxy.hostName())
-                     .arg(proxy.port());
+                     .arg(proxy.port())
+                     .arg(proxy.user())
+                     .arg(proxy.password());
     qDebug() << proxyDesc;
 }
 
