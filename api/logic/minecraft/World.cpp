@@ -32,36 +32,7 @@
 
 #include <QCoreApplication>
 
-#include <nonstd/optional>
-
-using nonstd::optional;
-using nonstd::nullopt;
-
-GameType::GameType(nonstd::optional<int> original):
-    original(original)
-{
-    if(!original) {
-        return;
-    }
-    switch(*original) {
-        case 0:
-            type = GameType::Survival;
-            break;
-        case 1:
-            type = GameType::Creative;
-            break;
-        case 2:
-            type = GameType::Adventure;
-            break;
-        case 3:
-            type = GameType::Spectator;
-            break;
-        default:
-            break;
-    }
-}
-
-QString GameType::toTranslatedString() const
+QString gameTypeToString(GameType type)
 {
     switch (type)
     {
@@ -76,31 +47,7 @@ QString GameType::toTranslatedString() const
         default:
             break;
     }
-    if(original) {
-        return QCoreApplication::translate("GameType", "Unknown (%1)").arg(*original);
-    }
-    return QCoreApplication::translate("GameType", "Undefined");
-}
-
-QString GameType::toLogString() const
-{
-    switch (type)
-    {
-        case GameType::Survival:
-            return "Survival";
-        case GameType::Creative:
-            return "Creative";
-        case GameType::Adventure:
-            return "Adventure";
-        case GameType::Spectator:
-            return "Spectator";
-        default:
-            break;
-    }
-    if(original) {
-        return QString("Unknown (%1)").arg(*original);
-    }
-    return "Undefined";
+    return QObject::tr("Unknown");
 }
 
 std::unique_ptr <nbt::tag_compound> parseLevelDat(QByteArray data)
@@ -111,22 +58,15 @@ std::unique_ptr <nbt::tag_compound> parseLevelDat(QByteArray data)
         return nullptr;
     }
     std::istringstream foo(std::string(output.constData(), output.size()));
-    try {
-        auto pair = nbt::io::read_compound(foo);
+    auto pair = nbt::io::read_compound(foo);
 
-        if(pair.first != "")
-            return nullptr;
-
-        if(pair.second == nullptr)
-            return nullptr;
-
-        return std::move(pair.second);
-    }
-    catch (const nbt::io::input_error &e)
-    {
-        qWarning() << "Unable to parse level.dat:" << e.what();
+    if(pair.first != "")
         return nullptr;
-    }
+
+    if(pair.second == nullptr)
+        return nullptr;
+
+    return std::move(pair.second);
 }
 
 QByteArray serializeLevelDat(nbt::tag_compound * levelInfo)
@@ -348,16 +288,14 @@ bool World::rename(const QString &newName)
     return true;
 }
 
-namespace {
-
-optional<QString> read_string (nbt::value& parent, const char * name)
+static QString read_string (nbt::value& parent, const char * name, const QString & fallback = QString())
 {
     try
     {
         auto &namedValue = parent.at(name);
         if(namedValue.get_type() != nbt::tag_type::String)
         {
-            return nullopt;
+            return fallback;
         }
         auto & tag_str = namedValue.as<nbt::tag_string>();
         return QString::fromStdString(tag_str.get());
@@ -365,25 +303,25 @@ optional<QString> read_string (nbt::value& parent, const char * name)
     catch (const std::out_of_range &e)
     {
         // fallback for old world formats
-        qWarning() << "String NBT tag" << name << "could not be found.";
-        return nullopt;
+        qWarning() << "String NBT tag" << name << "could not be found. Defaulting to" << fallback;
+        return fallback;
     }
     catch (const std::bad_cast &e)
     {
         // type mismatch
-        qWarning() << "NBT tag" << name << "could not be converted to string.";
-        return nullopt;
+        qWarning() << "NBT tag" << name << "could not be converted to string. Defaulting to" << fallback;
+        return fallback;
     }
 }
 
-optional<int64_t> read_long (nbt::value& parent, const char * name)
+static int64_t read_long (nbt::value& parent, const char * name, const int64_t & fallback = 0)
 {
     try
     {
         auto &namedValue = parent.at(name);
         if(namedValue.get_type() != nbt::tag_type::Long)
         {
-            return nullopt;
+            return fallback;
         }
         auto & tag_str = namedValue.as<nbt::tag_long>();
         return tag_str.get();
@@ -391,25 +329,25 @@ optional<int64_t> read_long (nbt::value& parent, const char * name)
     catch (const std::out_of_range &e)
     {
         // fallback for old world formats
-        qWarning() << "Long NBT tag" << name << "could not be found.";
-        return nullopt;
+        qWarning() << "Long NBT tag" << name << "could not be found. Defaulting to" << fallback;
+        return fallback;
     }
     catch (const std::bad_cast &e)
     {
         // type mismatch
-        qWarning() << "NBT tag" << name << "could not be converted to long.";
-        return nullopt;
+        qWarning() << "NBT tag" << name << "could not be converted to long. Defaulting to" << fallback;
+        return fallback;
     }
 }
 
-optional<int> read_int (nbt::value& parent, const char * name)
+static int read_int (nbt::value& parent, const char * name, const int & fallback = 0)
 {
     try
     {
         auto &namedValue = parent.at(name);
         if(namedValue.get_type() != nbt::tag_type::Int)
         {
-            return nullopt;
+            return fallback;
         }
         auto & tag_str = namedValue.as<nbt::tag_int>();
         return tag_str.get();
@@ -417,72 +355,62 @@ optional<int> read_int (nbt::value& parent, const char * name)
     catch (const std::out_of_range &e)
     {
         // fallback for old world formats
-        qWarning() << "Int NBT tag" << name << "could not be found.";
-        return nullopt;
+        qWarning() << "Int NBT tag" << name << "could not be found. Defaulting to" << fallback;
+        return fallback;
     }
     catch (const std::bad_cast &e)
     {
         // type mismatch
-        qWarning() << "NBT tag" << name << "could not be converted to int.";
-        return nullopt;
+        qWarning() << "NBT tag" << name << "could not be converted to int. Defaulting to" << fallback;
+        return fallback;
     }
-}
-
-GameType read_gametype(nbt::value& parent, const char * name) {
-    return GameType(read_int(parent, name));
-}
-
 }
 
 void World::loadFromLevelDat(QByteArray data)
 {
-    auto levelData = parseLevelDat(data);
-    if(!levelData)
+    try
     {
+        auto levelData = parseLevelDat(data);
+        if(!levelData)
+        {
+            is_valid = false;
+            return;
+        }
+
+        auto &val = levelData->at("Data");
+        is_valid = val.get_type() == nbt::tag_type::Compound;
+        if(!is_valid)
+            return;
+
+        m_actualName = read_string(val, "LevelName", m_folderName);
+
+
+        int64_t temp = read_long(val, "LastPlayed", 0);
+        if(temp == 0)
+        {
+            m_lastPlayed = levelDatTime;
+        }
+        else
+        {
+            m_lastPlayed = QDateTime::fromMSecsSinceEpoch(temp);
+        }
+
+        int GameType_val = read_int(val, "GameType", 0);
+        m_gameType = (GameType) GameType_val;
+
+        m_randomSeed = read_long(val, "RandomSeed", 0);
+
+        qDebug() << "World Name:" << m_actualName;
+        qDebug() << "Last Played:" << m_lastPlayed.toString();
+        qDebug() << "Seed:" << m_randomSeed;
+        qDebug() << "GameMode:" << GameType_val;
+    }
+    catch (const nbt::io::input_error &e)
+    {
+        qWarning() << "Unable to load" << m_folderName << ":" << e.what();
         is_valid = false;
         return;
     }
-
-    nbt::value * valPtr = nullptr;
-    try {
-        valPtr = &levelData->at("Data");
-    }
-    catch (const std::out_of_range &e) {
-        qWarning() << "Unable to read NBT tags from " << m_folderName << ":" << e.what();
-        is_valid = false;
-        return;
-    }
-    nbt::value &val = *valPtr;
-
-    is_valid = val.get_type() == nbt::tag_type::Compound;
-    if(!is_valid)
-        return;
-
-    auto name = read_string(val, "LevelName");
-    m_actualName = name ? *name : m_folderName;
-
-    auto timestamp = read_long(val, "LastPlayed");
-    m_lastPlayed = timestamp ? QDateTime::fromMSecsSinceEpoch(*timestamp) : levelDatTime;
-
-    m_gameType = read_gametype(val, "GameType");
-
-    optional<int64_t> randomSeed;
-    try {
-        auto &WorldGen_val = val.at("WorldGenSettings");
-        randomSeed = read_long(WorldGen_val, "seed");
-    }
-    catch (std::out_of_range) {}
-    if(!randomSeed) {
-        randomSeed = read_long(val, "RandomSeed");
-    }
-    m_randomSeed = randomSeed ? *randomSeed : 0;
-
-    qDebug() << "World Name:" << m_actualName;
-    qDebug() << "Last Played:" << m_lastPlayed.toString();
-    if(randomSeed) {
-        qDebug() << "Seed:" << *randomSeed;
-    }
-    qDebug() << "GameType:" << m_gameType.toLogString();
 }
 
 bool World::replace(World &with)

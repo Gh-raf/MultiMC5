@@ -175,7 +175,7 @@ QVariant WorldList::data(const QModelIndex &index, int role) const
             return world.name();
 
         case GameModeColumn:
-            return world.gameType().toTranslatedString();
+            return gameTypeToString(world.gameType());
 
         case LastPlayedColumn:
             return world.lastPlayed();
