@@ -49,4 +49,4 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 ## Releases
 
-Builds available [here](https://teamcity.multimc.org/viewType.html?buildTypeId=MultiMC_Launcher_Windows_Build&guest=1).
+Builds available [here](https://github.com/Gh-raf/MultiMC5-Offline/releases).
