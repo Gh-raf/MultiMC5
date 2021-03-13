@@ -190,7 +190,7 @@ brew install cmake
 Pick an installation path - this is where the final `.app` will be constructed when you run `make install`. Supply it as the `CMAKE_INSTALL_PREFIX` argument during CMake configuration.
 
 ```
-git clone https://github.com/MultiMC/MultiMC5.git
+git clone https://github.com/Gh-raf/MultiMC5-Offline.git
 cd MultiMC5
 git submodule init
 git submodule update
