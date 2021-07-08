@@ -1,4 +1,4 @@
-/* Copyright 2013-2019 MultiMC Contributors
+/* Copyright 2013-2021 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +37,8 @@ JavaPage::JavaPage(QWidget *parent) : QWidget(parent), ui(new Ui::JavaPage)
     ui->setupUi(this);
     ui->tabWidget->tabBar()->hide();
 
-    auto sysMB = Sys::getSystemRam() / Sys::megabyte;
-    ui->maxMemSpinBox->setMaximum(sysMB);
+    auto sysMiB = Sys::getSystemRam() / Sys::mebibyte;
+    ui->maxMemSpinBox->setMaximum(sysMiB);
     loadSettings();
 }
 

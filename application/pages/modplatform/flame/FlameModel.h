@@ -1,6 +1,5 @@
 #pragma once
 
-#include <modplatform/legacy_ftb/PackHelpers.h>
 #include <RWStorage.h>
 
 #include <QAbstractListModel>
@@ -16,9 +15,9 @@
 #include <functional>
 #include <net/NetJob.h>
 
-#include "TwitchData.h"
+#include <modplatform/flame/FlamePackIndex.h>
 
-namespace Twitch {
+namespace Flame {
 
 
 typedef QMap<QString, QIcon> LogoMap;
@@ -40,7 +39,7 @@ public:
     void fetchMore(const QModelIndex & parent) override;
 
     void getLogo(const QString &logo, const QString &logoUrl, LogoCallback callback);
-    void searchWithTerm(const QString & term);
+    void searchWithTerm(const QString & term, const int sort);
 
 private slots:
     void performPaginatedSearch();
@@ -55,13 +54,14 @@ private:
     void requestLogo(QString file, QString url);
 
 private:
-    QList<Modpack> modpacks;
+    QList<IndexedPack> modpacks;
     QStringList m_failedLogos;
     QStringList m_loadingLogos;
     LogoMap m_logoMap;
     QMap<QString, LogoCallback> waitingCallbacks;
 
     QString currentSearchTerm;
+    int currentSort = 0;
     int nextSearchOffset = 0;
     enum SearchState {
         None,

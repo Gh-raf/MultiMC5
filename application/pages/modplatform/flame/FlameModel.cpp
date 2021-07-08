@@ -1,5 +1,6 @@
-#include "TwitchModel.h"
+#include "FlameModel.h"
 #include "MultiMC.h"
+#include <Json.h>
 
 #include <MMCStrings.h>
 #include <Version.h>
@@ -10,7 +11,7 @@
 #include <RWStorage.h>
 #include <Env.h>
 
-namespace Twitch {
+namespace Flame {
 
 ListModel::ListModel(QObject *parent) : QAbstractListModel(parent)
 {
@@ -38,7 +39,7 @@ QVariant ListModel::data(const QModelIndex &index, int role) const
         return QString("INVALID INDEX %1").arg(pos);
     }
 
-    Modpack pack = modpacks.at(pos);
+    IndexedPack pack = modpacks.at(pos);
     if(role == Qt::DisplayRole)
     {
         return pack.name;
@@ -99,8 +100,8 @@ void ListModel::requestLogo(QString logo, QString url)
         return;
     }
 
-    MetaEntryPtr entry = ENV.metacache()->resolveEntry("TwitchPacks", QString("logos/%1").arg(logo.section(".", 0, 0)));
-    NetJob *job = new NetJob(QString("Twitch Icon Download %1").arg(logo));
+    MetaEntryPtr entry = ENV.metacache()->resolveEntry("FlamePacks", QString("logos/%1").arg(logo.section(".", 0, 0)));
+    NetJob *job = new NetJob(QString("Flame Icon Download %1").arg(logo));
     job->addNetAction(Net::Download::makeCached(QUrl(url), entry));
 
     auto fullPath = entry->getFullPath();
@@ -127,7 +128,7 @@ void ListModel::getLogo(const QString &logo, const QString &logoUrl, LogoCallbac
 {
     if(m_logoMap.contains(logo))
     {
-        callback(ENV.metacache()->resolveEntry("TwitchPacks", QString("logos/%1").arg(logo.section(".", 0, 0)))->getFullPath());
+        callback(ENV.metacache()->resolveEntry("FlamePacks", QString("logos/%1").arg(logo.section(".", 0, 0)))->getFullPath());
     }
     else
     {
@@ -158,18 +159,17 @@ void ListModel::fetchMore(const QModelIndex& parent)
 
 void ListModel::performPaginatedSearch()
 {
-    NetJob *netJob = new NetJob("Twitch::Search");
+    NetJob *netJob = new NetJob("Flame::Search");
     auto searchUrl = QString(
         "https://addons-ecs.forgesvc.net/api/v2/addon/search?"
         "categoryId=0&"
         "gameId=432&"
-        //"gameVersion=1.12.2&"
         "index=%1&"
         "pageSize=25&"
         "searchFilter=%2&"
         "sectionId=4471&"
-        "sort=0"
-    ).arg(nextSearchOffset).arg(currentSearchTerm);
+        "sort=%3"
+    ).arg(nextSearchOffset).arg(currentSearchTerm).arg(currentSort);
     netJob->addNetAction(Net::Download::makeByteArray(QUrl(searchUrl), &response));
     jobPtr = netJob;
     jobPtr->start();
@@ -177,12 +177,13 @@ void ListModel::performPaginatedSearch()
     QObject::connect(netJob, &NetJob::failed, this, &ListModel::searchRequestFailed);
 }
 
-void ListModel::searchWithTerm(const QString& term)
+void ListModel::searchWithTerm(const QString& term, int sort)
 {
-    if(currentSearchTerm == term) {
+    if(currentSearchTerm == term && currentSearchTerm.isNull() == term.isNull() && currentSort == sort) {
         return;
     }
     currentSearchTerm = term;
+    currentSort = sort;
     if(jobPtr) {
         jobPtr->abort();
         searchState = ResetRequested;
@@ -198,90 +199,36 @@ void ListModel::searchWithTerm(const QString& term)
     performPaginatedSearch();
 }
 
-void Twitch::ListModel::searchRequestFinished()
+void Flame::ListModel::searchRequestFinished()
 {
     jobPtr.reset();
 
     QJsonParseError parse_error;
     QJsonDocument doc = QJsonDocument::fromJson(response, &parse_error);
     if(parse_error.error != QJsonParseError::NoError) {
-        qWarning() << "Error while parsing JSON response from Twitch at " << parse_error.offset << " reason: " << parse_error.errorString();
+        qWarning() << "Error while parsing JSON response from CurseForge at " << parse_error.offset << " reason: " << parse_error.errorString();
         qWarning() << response;
         return;
     }
 
-    QList<Modpack> newList;
-    auto objs = doc.array();
-    for(auto projectIter: objs) {
-        Modpack pack;
-        auto project = projectIter.toObject();
-        pack.addonId = project.value("id").toInt(0);
-        if (pack.addonId == 0) {
-            qWarning() << "Pack without an ID, skipping: " << pack.name;
+    QList<Flame::IndexedPack> newList;
+    auto packs = doc.array();
+    for(auto packRaw : packs) {
+        auto packObj = packRaw.toObject();
+
+        Flame::IndexedPack pack;
+        try
+        {
+            Flame::loadIndexedPack(pack, packObj);
+            newList.append(pack);
+        }
+        catch(const JSONValidationError &e)
+        {
+            qWarning() << "Error while loading pack from CurseForge: " << e.cause();
             continue;
         }
-        pack.name = project.value("name").toString();
-        pack.websiteUrl = project.value("websiteUrl").toString();
-        pack.description = project.value("summary").toString();
-        bool thumbnailFound = false;
-        auto attachments = project.value("attachments").toArray();
-        for(auto attachmentIter: attachments) {
-            auto attachment = attachmentIter.toObject();
-            bool isDefault = attachment.value("isDefault").toBool(false);
-            if(isDefault) {
-                thumbnailFound = true;
-                pack.logoName = attachment.value("title").toString();
-                pack.logoUrl = attachment.value("thumbnailUrl").toString();
-                break;
-            }
-        }
-        if(!thumbnailFound) {
-            qWarning() << "Pack without an icon, skipping: " << pack.name;
-            continue;
-        }
-        auto authors = project.value("authors").toArray();
-        for(auto authorIter: authors) {
-            auto author = authorIter.toObject();
-            ModpackAuthor packAuthor;
-            packAuthor.name = author.value("name").toString();
-            packAuthor.url = author.value("url").toString();
-            pack.authors.append(packAuthor);
-        }
-        int defaultFileId = project.value("defaultFileId").toInt(0);
-        if(defaultFileId == 0) {
-            qWarning() << "Pack without default file, skipping: " << pack.name;
-            continue;
-        }
-        bool found = false;
-        auto files = project.value("latestFiles").toArray();
-        for(auto fileIter: files) {
-            auto file = fileIter.toObject();
-            int id = file.value("id").toInt(0);
-            // NOTE: for now, ignore everything that's not the default...
-            if(id != defaultFileId) {
-                continue;
-            }
-            pack.latestFile.addonId = pack.addonId;
-            pack.latestFile.fileId = id;
-            // FIXME: what to do when there's more than one, or there's no version?
-            auto versionArray = file.value("gameVersion").toArray();
-            if(versionArray.size() != 1) {
-                continue;
-            }
-            pack.latestFile.mcVersion = versionArray[0].toString();
-            pack.latestFile.version = file.value("displayName").toString();
-            pack.latestFile.downloadUrl = file.value("downloadUrl").toString();
-            found = true;
-            break;
-        }
-        if(!found) {
-            qWarning() << "Pack with no good file, skipping: " << pack.name;
-            continue;
-        }
-        pack.broken = false;
-        newList.append(pack);
     }
-    if(objs.size() < 25) {
+    if(packs.size() < 25) {
         searchState = Finished;
     } else {
         nextSearchOffset += 25;
@@ -292,7 +239,7 @@ void Twitch::ListModel::searchRequestFinished()
     endInsertRows();
 }
 
-void Twitch::ListModel::searchRequestFailed(QString reason)
+void Flame::ListModel::searchRequestFailed(QString reason)
 {
     jobPtr.reset();
 
