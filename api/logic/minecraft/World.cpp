@@ -1,4 +1,4 @@
-/* Copyright 2015-2019 MultiMC Contributors
+/* Copyright 2015-2021 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -289,7 +289,7 @@ bool World::install(const QString &to, const QString &name)
         {
             return false;
         }
-        ok = !MMCZip::extractSubDir(&zip, m_containerOffsetPath, finalPath).isEmpty();
+        ok = !MMCZip::extractSubDir(&zip, m_containerOffsetPath, finalPath);
     }
     else if(m_containerFile.isDir())
     {
@@ -471,7 +471,7 @@ void World::loadFromLevelDat(QByteArray data)
         auto &WorldGen_val = val.at("WorldGenSettings");
         randomSeed = read_long(WorldGen_val, "seed");
     }
-    catch (std::out_of_range) {}
+    catch (const std::out_of_range &) {}
     if(!randomSeed) {
         randomSeed = read_long(val, "RandomSeed");
     }

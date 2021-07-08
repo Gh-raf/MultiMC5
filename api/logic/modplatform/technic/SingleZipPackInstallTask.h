@@ -1,4 +1,4 @@
-/* Copyright 2013-2020 MultiMC Contributors
+/* Copyright 2013-2021 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 #include <QStringList>
 #include <QUrl>
 
+#include <nonstd/optional>
+
 namespace Technic {
 
 class MULTIMC_LOGIC_EXPORT SingleZipPackInstallTask : public InstanceTask
@@ -33,6 +35,9 @@ class MULTIMC_LOGIC_EXPORT SingleZipPackInstallTask : public InstanceTask
 
 public:
     SingleZipPackInstallTask(const QUrl &sourceUrl, const QString &minecraftVersion);
+
+    bool canAbort() const override { return true; }
+    bool abort() override;
 
 protected:
     void executeTask() override;
@@ -46,13 +51,15 @@ private slots:
     void extractAborted();
 
 private:
+    bool m_abortable = false;
+
     QUrl m_sourceUrl;
     QString m_minecraftVersion;
     QString m_archivePath;
     NetJobPtr m_filesNetJob;
     std::unique_ptr<QuaZip> m_packZip;
-    QFuture<QStringList> m_extractFuture;
-    QFutureWatcher<QStringList> m_extractFutureWatcher;
+    QFuture<nonstd::optional<QStringList>> m_extractFuture;
+    QFutureWatcher<nonstd::optional<QStringList>> m_extractFutureWatcher;
 };
 
 } // namespace Technic

@@ -6,6 +6,8 @@
 #include "dialogs/NewInstanceDialog.h"
 #include "modplatform/modpacksch/FTBPackInstallTask.h"
 
+#include "HoeDown.h"
+
 FtbPage::FtbPage(NewInstanceDialog* dialog, QWidget *parent)
         : QWidget(parent), ui(new Ui::FtbPage), dialog(dialog)
 {
@@ -20,6 +22,9 @@ FtbPage::FtbPage(NewInstanceDialog* dialog, QWidget *parent)
     ui->packView->setIndentation(0);
 
     ui->searchEdit->installEventFilter(this);
+
+    ui->versionSelectionBox->view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    ui->versionSelectionBox->view()->parentWidget()->setMaximumHeight(300);
 
     for(int i = 0; i < filterModel->getAvailableSortings().size(); i++)
     {
@@ -58,26 +63,33 @@ bool FtbPage::shouldDisplay() const
 
 void FtbPage::openedImpl()
 {
-    dialog->setSuggestedPack();
     triggerSearch();
+    suggestCurrent();
 }
 
 void FtbPage::suggestCurrent()
 {
-    if(isOpened)
+    if(!isOpened)
     {
-        dialog->setSuggestedPack(selected.name, new ModpacksCH::PackInstallTask(selected, selectedVersion));
+        return;
+    }
 
-        for(auto art : selected.art) {
-            if(art.type == "square") {
-                QString editedLogoName;
-                editedLogoName = selected.name;
+    if (selectedVersion.isEmpty())
+    {
+        dialog->setSuggestedPack();
+        return;
+    }
 
-                listModel->getLogo(selected.name, art.url, [this, editedLogoName](QString logo)
-                {
-                    dialog->setSuggestedIconFromFile(logo + ".small", editedLogoName);
-                });
-            }
+    dialog->setSuggestedPack(selected.name, new ModpacksCH::PackInstallTask(selected, selectedVersion));
+    for(auto art : selected.art) {
+        if(art.type == "square") {
+            QString editedLogoName;
+            editedLogoName = selected.name;
+
+            listModel->getLogo(selected.name, art.url, [this, editedLogoName](QString logo)
+            {
+                dialog->setSuggestedIconFromFile(logo + ".small", editedLogoName);
+            });
         }
     }
 }
@@ -107,6 +119,10 @@ void FtbPage::onSelectionChanged(QModelIndex first, QModelIndex second)
     }
 
     selected = filterModel->data(first, Qt::UserRole).value<ModpacksCH::Modpack>();
+
+    HoeDown hoedown;
+    QString output = hoedown.process(selected.description.toUtf8());
+    ui->packDescription->setHtml(output);
 
     // reverse foreach, so that the newest versions are first
     for (auto i = selected.versions.size(); i--;) {

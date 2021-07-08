@@ -124,6 +124,8 @@ set(NET_SOURCES
 
 # Game launch logic
 set(LAUNCH_SOURCES
+    launch/steps/LookupServerAddress.cpp
+    launch/steps/LookupServerAddress.h
     launch/steps/PostLaunchCommand.cpp
     launch/steps/PostLaunchCommand.h
     launch/steps/PreLaunchCommand.cpp
@@ -226,8 +228,8 @@ set(MINECRAFT_SOURCES
 
     minecraft/launch/ClaimAccount.cpp
     minecraft/launch/ClaimAccount.h
-    minecraft/launch/CreateServerResourcePacksFolder.cpp
-    minecraft/launch/CreateServerResourcePacksFolder.h
+    minecraft/launch/CreateGameFolders.cpp
+    minecraft/launch/CreateGameFolders.h
     minecraft/launch/ModMinecraftJar.cpp
     minecraft/launch/ModMinecraftJar.h
     minecraft/launch/DirectJavaLaunch.cpp
@@ -236,12 +238,16 @@ set(MINECRAFT_SOURCES
     minecraft/launch/ExtractNatives.h
     minecraft/launch/LauncherPartLaunch.cpp
     minecraft/launch/LauncherPartLaunch.h
+    minecraft/launch/MinecraftServerTarget.cpp
+    minecraft/launch/MinecraftServerTarget.h
     minecraft/launch/PrintInstanceInfo.cpp
     minecraft/launch/PrintInstanceInfo.h
     minecraft/launch/ReconstructAssets.cpp
     minecraft/launch/ReconstructAssets.h
     minecraft/launch/ScanModFolders.cpp
     minecraft/launch/ScanModFolders.h
+    minecraft/launch/VerifyJavaInstall.cpp
+    minecraft/launch/VerifyJavaInstall.h
 
     minecraft/legacy/LegacyModList.h
     minecraft/legacy/LegacyModList.cpp
@@ -298,14 +304,20 @@ set(MINECRAFT_SOURCES
     minecraft/mod/ModFolderLoadTask.cpp
     minecraft/mod/LocalModParseTask.h
     minecraft/mod/LocalModParseTask.cpp
+    minecraft/mod/ResourcePackFolderModel.h
+    minecraft/mod/ResourcePackFolderModel.cpp
+    minecraft/mod/TexturePackFolderModel.h
+    minecraft/mod/TexturePackFolderModel.cpp
 
     # Assets
     minecraft/AssetsUtils.h
     minecraft/AssetsUtils.cpp
 
-    # Skin upload utilities
-    minecraft/SkinUpload.cpp
-    minecraft/SkinUpload.h
+    # Minecraft services
+    minecraft/services/SkinUpload.cpp
+    minecraft/services/SkinUpload.h
+    minecraft/services/SkinDelete.cpp
+    minecraft/services/SkinDelete.h
 
     mojang/PackageManifest.h
     mojang/PackageManifest.cpp
@@ -464,6 +476,8 @@ set(FTB_SOURCES
 
 set(FLAME_SOURCES
     # Flame
+    modplatform/flame/FlamePackIndex.cpp
+    modplatform/flame/FlamePackIndex.h
     modplatform/flame/PackManifest.h
     modplatform/flame/PackManifest.cpp
     modplatform/flame/FileResolvingTask.h
@@ -484,6 +498,15 @@ set(TECHNIC_SOURCES
     modplatform/technic/SolderPackInstallTask.cpp
     modplatform/technic/TechnicPackProcessor.h
     modplatform/technic/TechnicPackProcessor.cpp
+)
+
+set(ATLAUNCHER_SOURCES
+    modplatform/atlauncher/ATLPackIndex.cpp
+    modplatform/atlauncher/ATLPackIndex.h
+    modplatform/atlauncher/ATLPackInstallTask.cpp
+    modplatform/atlauncher/ATLPackInstallTask.h
+    modplatform/atlauncher/ATLPackManifest.cpp
+    modplatform/atlauncher/ATLPackManifest.h
 )
 
 add_unit_test(Index
@@ -518,6 +541,7 @@ set(LOGIC_SOURCES
     ${FLAME_SOURCES}
     ${MODPACKSCH_SOURCES}
     ${TECHNIC_SOURCES}
+    ${ATLAUNCHER_SOURCES}
 )
 
 add_library(MultiMC_logic SHARED ${LOGIC_SOURCES})
@@ -526,7 +550,7 @@ set_target_properties(MultiMC_logic PROPERTIES CXX_VISIBILITY_PRESET hidden VISI
 generate_export_header(MultiMC_logic)
 
 # Link
-target_link_libraries(MultiMC_logic systeminfo MultiMC_quazip MultiMC_classparser ${NBT_NAME} ${ZLIB_LIBRARIES} optional-bare BuildConfig)
+target_link_libraries(MultiMC_logic systeminfo MultiMC_quazip MultiMC_classparser ${NBT_NAME} ${ZLIB_LIBRARIES} optional-bare tomlc99 BuildConfig)
 target_link_libraries(MultiMC_logic Qt5::Core Qt5::Xml Qt5::Network Qt5::Concurrent)
 
 # Mark and export headers

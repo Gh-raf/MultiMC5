@@ -1,4 +1,4 @@
-/* Copyright 2020 MultiMC Contributors
+/* Copyright 2020-2021 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ int Technic::ListModel::rowCount(const QModelIndex&) const
 
 void Technic::ListModel::searchWithTerm(const QString& term)
 {
-    if(currentSearchTerm == term) {
+    if(currentSearchTerm == term && currentSearchTerm.isNull() == term.isNull()) {
         return;
     }
     currentSearchTerm = term;
@@ -93,9 +93,18 @@ void Technic::ListModel::searchWithTerm(const QString& term)
 void Technic::ListModel::performSearch()
 {
     NetJob *netJob = new NetJob("Technic::Search");
-    auto searchUrl = QString(
-        "https://api.technicpack.net/search?build=multimc&q=%1"
-    ).arg(currentSearchTerm);
+    QString searchUrl = "";
+    if (currentSearchTerm.isEmpty()) {
+        searchUrl = QString(
+            "https://api.technicpack.net/trending?build=multimc"
+        ).arg(currentSearchTerm);
+    }
+    else
+    {
+        searchUrl = QString(
+            "https://api.technicpack.net/search?build=multimc&q=%1"
+        ).arg(currentSearchTerm);
+    }
     netJob->addNetAction(Net::Download::makeByteArray(QUrl(searchUrl), &response));
     jobPtr = netJob;
     jobPtr->start();

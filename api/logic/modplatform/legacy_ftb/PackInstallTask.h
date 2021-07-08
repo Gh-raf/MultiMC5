@@ -8,6 +8,8 @@
 #include "meta/VersionList.h"
 #include "PackHelpers.h"
 
+#include <nonstd/optional>
+
 namespace LegacyFTB {
 
 class MULTIMC_LOGIC_EXPORT PackInstallTask : public InstanceTask
@@ -18,6 +20,7 @@ public:
     explicit PackInstallTask(Modpack pack, QString version);
     virtual ~PackInstallTask(){}
 
+    bool canAbort() const override { return true; }
     bool abort() override;
 
 protected:
@@ -40,8 +43,8 @@ private slots:
 private: /* data */
     bool abortable = false;
     std::unique_ptr<QuaZip> m_packZip;
-    QFuture<QStringList> m_extractFuture;
-    QFutureWatcher<QStringList> m_extractFutureWatcher;
+    QFuture<nonstd::optional<QStringList>> m_extractFuture;
+    QFutureWatcher<nonstd::optional<QStringList>> m_extractFutureWatcher;
     NetJobPtr netJobContainer;
     QString archivePath;
 

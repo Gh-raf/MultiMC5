@@ -11,11 +11,16 @@
         <!-- REDDIT logo icon, needs reddit license! -->
         <file>scalable/reddit-alien.svg</file>
 
-        <!-- twitch logo icon -->
-        <file>scalable/twitch.svg</file>
+        <!-- Icon for CurseForge. Unknown license? -->
+        <file alias="32x32/flame.png">32x32/instances/flame.png</file>
+        <file alias="128x128/flame.png">128x128/instances/flame.png</file>
 
         <!-- technic logo icon -->
         <file>scalable/technic.svg</file>
+
+        <!-- ATLauncher logo icon (and related bits) -->
+        <file>scalable/atlauncher.svg</file>
+        <file>scalable/atlauncher-placeholder.png</file>
 
         <!-- A proxy icon. Our own. SSSsss -->
         <file>scalable/proxy.svg</file>

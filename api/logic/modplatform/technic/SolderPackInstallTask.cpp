@@ -1,4 +1,4 @@
-/* Copyright 2013-2020 MultiMC Contributors
+/* Copyright 2013-2021 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,14 @@ Technic::SolderPackInstallTask::SolderPackInstallTask(const QUrl &sourceUrl, con
 {
     m_sourceUrl = sourceUrl;
     m_minecraftVersion = minecraftVersion;
+}
+
+bool Technic::SolderPackInstallTask::abort() {
+    if(m_abortable)
+    {
+        return m_filesNetJob->abort();
+    }
+    return false;
 }
 
 void Technic::SolderPackInstallTask::executeTask()
@@ -106,6 +114,8 @@ void Technic::SolderPackInstallTask::fileListSucceeded()
 
 void Technic::SolderPackInstallTask::downloadSucceeded()
 {
+    m_abortable = false;
+
     setStatus(tr("Extracting modpack"));
     m_filesNetJob.reset();
     m_extractFuture = QtConcurrent::run([this]()
@@ -117,7 +127,7 @@ void Technic::SolderPackInstallTask::downloadSucceeded()
         while (m_modCount > i)
         {
             auto path = FS::PathCombine(m_outputDir.path(), QString("%1").arg(i));
-            if (MMCZip::extractDir(path, extractDir).isEmpty())
+            if (!MMCZip::extractDir(path, extractDir))
             {
                 return false;
             }
@@ -132,12 +142,14 @@ void Technic::SolderPackInstallTask::downloadSucceeded()
 
 void Technic::SolderPackInstallTask::downloadFailed(QString reason)
 {
+    m_abortable = false;
     emitFailed(reason);
     m_filesNetJob.reset();
 }
 
 void Technic::SolderPackInstallTask::downloadProgressChanged(qint64 current, qint64 total)
 {
+    m_abortable = true;
     setProgress(current / 2, total);
 }
 
